@@ -37,29 +37,37 @@ class Client:
 		
 	# THIS GUI IS JUST FOR REFERENCE ONLY, STUDENTS HAVE TO CREATE THEIR OWN GUI 	
 	def createWidgets(self):
+		playImg = PhotoImage(file="play.png")
+		setupImg = PhotoImage(file="gear.png")
+		pauseImg = PhotoImage(file="pause.png")
+		tearImg = PhotoImage(file="teardown.png")
 		"""Build GUI."""
 		# Create Setup button
-		self.setup = Button(self.master, width=20, padx=3, pady=3)
+		self.setup = Button(self.master, width=20, padx=3, pady=3, )
 		self.setup["text"] = "Setup"
 		self.setup["command"] = self.setupMovie
+		self.setup["icon"] = setupImg
 		self.setup.grid(row=1, column=0, padx=2, pady=2)
 		
 		# Create Play button		
 		self.start = Button(self.master, width=20, padx=3, pady=3)
 		self.start["text"] = "Play"
 		self.start["command"] = self.playMovie
+		self.start["icon"] = playImg
 		self.start.grid(row=1, column=1, padx=2, pady=2)
 		
 		# Create Pause button			
 		self.pause = Button(self.master, width=20, padx=3, pady=3)
 		self.pause["text"] = "Pause"
 		self.pause["command"] = self.pauseMovie
+		self.pause["icon"] = pauseImg
 		self.pause.grid(row=1, column=2, padx=2, pady=2)
 		
 		# Create Teardown button
 		self.teardown = Button(self.master, width=20, padx=3, pady=3)
 		self.teardown["text"] = "Teardown"
 		self.teardown["command"] =  self.exitClient
+		self.teardown["icon"] = tearImg
 		self.teardown.grid(row=1, column=3, padx=2, pady=2)
 		
 		# Create a label to display the movie
@@ -67,20 +75,21 @@ class Client:
 		self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5) 
 	
 	def setupMovie(self):
-		"""Setup button handler."""
-	#TODO
+		if self.state == self.INIT:
+			self.sendRtspRequest(self.SETUP)
+
 	
 	def exitClient(self):
 		"""Teardown button handler."""
 	#TODO
 
 	def pauseMovie(self):
-		"""Pause button handler."""
-	#TODO
+		if self.state == self.PLAYING:
+			self.sendRtspRequest(self.PAUSE)
 	
 	def playMovie(self):
-		"""Play button handler."""
-	#TODO
+		if self.state == self.READY:
+			self.sendRtspRequest(self.PLAY)
 	
 	def listenRtp(self):		
 		"""Listen for RTP packets."""
@@ -96,18 +105,36 @@ class Client:
 		
 	def connectToServer(self):
 		"""Connect to the Server. Start a new RTSP/TCP session."""
-	#TODO
+		self.clientSocket = socket(socket.AF_INET, socket.SOCK_STREAM)
+		self.clientSocket.connect((self.serverAddr, self.serverPort))
 	
 	def sendRtspRequest(self, requestCode):
 		"""Send RTSP request to the server."""	
 		#-------------
 		# TO COMPLETE
 		#-------------
+		if requestCode == self.SETUP:
+			threading.Thread(target=self.recvRtspReply).start()
+			self.rtspSeq += 1
+			requestMessage = f"SETUP movie.Mjpeg RTSP/1.0\nCseq: {self.rtspSeq}\nTransport: RTP/UDP; client_port={self.rtpPort}"
+		elif requestCode == self.PLAY:
+			self.rtspSeq += 1
+			requestMessage = f"PLAY movie.Mjpeg RTSP/1.0\nCseq: {self.rtspSeq}\nSession {self.sessionId}"
+		elif requestCode == self.PAUSE:
+			self.rtspSeq += 1
+			requestMessage = f"PAUSE movie.Mjpeg RTSP/1.0\nCseq: {self.rtspSeq}\nSession {self.sessionId}"
+		elif requestCode == self.TEARDOWN:
+			self.rtspSeq += 1
+			requestMessage = f"TEARDOWN movie.Mjpeg RTSP/1.0\nCseq: {self.rtspSeq}\nSession {self.sessionId}"
+
+		self.requestSent = requestCode
+		self.clientSocket.send(requestMessage.encode())
 		
 	
 	
 	def recvRtspReply(self):
 		"""Receive RTSP reply from the server."""
+
 		#TODO
 	
 	def parseRtspReply(self, data):
