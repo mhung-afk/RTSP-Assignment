@@ -68,6 +68,7 @@ class ServerWorker:
 				self.replyRtsp(self.OK_200, seq[1])
 				
 				# Get the RTP/UDP port from the last line
+				print("\n\n{request[2]}\n\n")
 				self.clientInfo['rtpPort'] = request[2].split(' ')[3]
 		
 		# Process PLAY request 		
