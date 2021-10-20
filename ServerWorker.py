@@ -50,6 +50,7 @@ class ServerWorker:
 		seq = request[1].split(' ')
 		
 		# Process SETUP request
+		print(f"requestType = {requestType}, state = {self.state}")
 		if requestType == self.SETUP:
 			if self.state == self.INIT:
 				# Update state
@@ -99,8 +100,8 @@ class ServerWorker:
 		
 		# Process TEARDOWN request
 		elif requestType == self.TEARDOWN:
+			self.state = self.INIT
 			print("processing TEARDOWN\n")
-
 			self.clientInfo['event'].set()
 			
 			self.replyRtsp(self.OK_200, seq[1])
