@@ -123,7 +123,7 @@ class Client:
 			# Create a new thread to listen for RTP packets
 			threading.Thread(target=self.listenRtp).start()
 			self.playEvent = threading.Event()
-			self.playEvent.clear()
+			# self.playEvent.clear()
 			self.sendRtspRequest(self.PLAY)
 	
 	def listenRtp(self):		
@@ -131,7 +131,7 @@ class Client:
 		while True:
 			try:
 				print("LISTENING...")
-				data = self.rtpSocket.recv(20480)
+				data = self.rtpSocket.recvfrom(20480)[0]								#? 20480
 				if data:
 					rtpPacket = RtpPacket()
 					rtpPacket.decode(data)
@@ -160,7 +160,6 @@ class Client:
 		file = open(cachename, "wb")
 		file.write(data)
 		file.close()
-		
 		return cachename
 	
 	def updateMovie(self, imageFile):
@@ -277,7 +276,8 @@ class Client:
 				if int(lines[0].split(' ')[1]) == 200: 
 					if self.requestSent == self.SETUP:
 						# Update RTSP state.
-						self.state = self.READY
+						#self.state = self.READY
+
 						# Open RTP port.
 						self.openRtpPort() 
 					elif self.requestSent == self.PLAY:
@@ -301,7 +301,7 @@ class Client:
 		
 		try:
 			# Bind the socket to the address using the RTP port given by the client user.
-			#self.state=self.READY
+			self.state=self.READY
 			self.rtpSocket.bind(('', self.rtpPort))
 		except:
 			messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' %self.rtpPort)
