@@ -12,6 +12,11 @@ CACHE_FILE_NAME = "cache-"
 CACHE_FILE_EXT = ".jpg"
 
 class Client:
+	SETUP_STR = 'SETUP'
+	PLAY_STR = 'PLAY'
+	PAUSE_STR = 'PAUSE'
+	TEARDOWN_STR = 'TEARDOWN'
+
 	INIT = 0
 	READY = 1
 	PLAYING = 2
@@ -21,23 +26,25 @@ class Client:
 	PLAY = 1
 	PAUSE = 2
 	TEARDOWN = 3
+
+	RTSP_VER = "RTSP/1.0"
+	TRANSPORT = "RTP/UDP"
 	
 	# Initiation..
 	def __init__(self, master, serveraddr, serverport, rtpport, filename):
-		self.master = master
+		self.master = master #GUI
 		self.master.protocol("WM_DELETE_WINDOW", self.handler)
 		self.createWidgets()
 		self.serverAddr = serveraddr
 		self.serverPort = int(serverport)
 		self.rtpPort = int(rtpport)
 		self.fileName = filename
-		self.rtspSeq = 0
-		self.sessionId = 0
-		self.requestSent = -1
+		self.rtspSeq = 0 #CSeq number, client and server request and response same number
+		self.sessionId = 0 #section number has been responsed from server 
+		self.requestSent = -1 #request to server
 		self.teardownAcked = 0
 		self.connectToServer()
 		self.frameNbr = 0
-		
 		
 		
 	# THIS GUI IS JUST FOR REFERENCE ONLY, STUDENTS HAVE TO CREATE THEIR OWN GUI 	
@@ -242,7 +249,7 @@ class Client:
 	def recvRtspReply(self):
 		"""Receive RTSP reply from the server."""
 		while True:
-			reply = self.rtspSocket.recv(1024)
+			reply = self.rtspSocket.recv(1024)															#? 1024
 			
 			if reply: 
 				self.parseRtspReply(reply)
@@ -269,49 +276,33 @@ class Client:
 			if self.sessionId == session:
 				if int(lines[0].split(' ')[1]) == 200: 
 					if self.requestSent == self.SETUP:
-						#-------------
-						# TO COMPLETE
-						#-------------
-                        
-                        
 						# Update RTSP state.
 						self.state = self.READY
-						
 						# Open RTP port.
 						self.openRtpPort() 
 					elif self.requestSent == self.PLAY:
 						self.state = self.PLAYING
 					elif self.requestSent == self.PAUSE:
 						self.state = self.READY
-                        
-						
 						# The play thread exits. A new thread is created on resume.
 						self.playEvent.set()
 					elif self.requestSent == self.TEARDOWN:
 						self.state = self.INIT
-						
 						# Flag the teardownAcked to close the socket.
 						self.teardownAcked = 1 
 	
 	def openRtpPort(self):
 		"""Open RTP socket binded to a specified port."""
-    
-		#-------------
-		# TO COMPLETE
-		#-------------
-        
         
 		# Create a new datagram socket to receive RTP packets from the server
-		self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            
-		
+		self.rtpSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
 		# Set the timeout value of the socket to 0.5sec
 		self.rtpSocket.settimeout(0.5)
 		
 		try:
 			# Bind the socket to the address using the RTP port given by the client user.
-			self.state=self.READY
-			self.rtpSocket.bind(('',self.rtpPort))
+			#self.state=self.READY
+			self.rtpSocket.bind(('', self.rtpPort))
 		except:
 			messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' %self.rtpPort)
 
