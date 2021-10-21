@@ -34,6 +34,7 @@ class Client:
 		self.teardownAcked = 0
 		self.connectToServer()
 		self.frameNbr = 0
+		self.countLostFrame = 0
 		
 		
 		
@@ -43,7 +44,6 @@ class Client:
 		setupImg = PhotoImage(file="gear.png")
 		pauseImg = PhotoImage(file="pause.png")
 		tearImg = PhotoImage(file="teardown.png")
-		print("done images")
 		"""Build GUI."""
 		# Create Setup button
 		self.setup = Button(self.master, padx=3, pady=3,image=setupImg, command=self.setupMovie)
@@ -99,12 +99,12 @@ class Client:
 	def exitClient(self):
 		"""Teardown button handler."""
 		if self.state == self.READY or self.state == self.PLAYING:
-			print("press tear down button")
+			print("pressed tear down button")
 			self.sendRtspRequest(self.TEARDOWN)
 
 	def pauseMovie(self):
 		if self.state == self.PLAYING:
-			print("press pause button")
+			print("pressed pause button")
 			self.sendRtspRequest(self.PAUSE)
 			
 
@@ -114,7 +114,7 @@ class Client:
 			self.eventThread = threading.Event()
 			self.eventThread.clear()
 			self.rcvThread = threading.Thread(target=self.listenRtp, daemon=True).start()
-			print("press play button")
+			print("pressed play button")
 			self.sendRtspRequest(self.PLAY)
 	
 	def listenRtp(self):		
@@ -124,16 +124,15 @@ class Client:
 			try:
 				if self.eventThread.is_set():
 					break
-				print("receiving")
+				# print("receiving")
 				data, _ = self.rtpSocket.recvfrom(102400)
 				rtpPacket = RtpPacket()
 				rtpPacket.decode(data)
-				print(self.frameNbr)
-				print(rtpPacket.seqNum())
-				if self.frameNbr < rtpPacket.seqNum():
+				seqNumPacket = rtpPacket.seqNum()
+				if self.frameNbr < seqNumPacket:
 					temp = self.writeFrame(rtpPacket.getPayload())
 					self.updateMovie(temp)
-					self.frameNbr = rtpPacket.seqNum()
+					self.frameNbr = seqNumPacket
 			except:
 				if self.teardownAcked == 1:
 					self.rtpSocket.shutdown(socket.SHUT_RDWR)
@@ -154,7 +153,6 @@ class Client:
 		frame = ImageTk.PhotoImage(Image.open(imageFile))
 		self.label.configure(image=frame, height=500)
 		self.label.image = frame
-		print("updated frame")
 
 		
 	def connectToServer(self):
@@ -182,7 +180,6 @@ class Client:
 			requestMessage = f"TEARDOWN movie.Mjpeg RTSP/1.0\nCseq: {self.rtspSeq}\nSession {self.sessionId}"
 
 		self.requestSent = requestCode
-		print(self.requestSent)
 		self.clientSocket.send(requestMessage.encode("utf-8"))
 		
 	
@@ -216,11 +213,10 @@ class Client:
 				self.label = Label(self.master, height=30, width=30)
 				self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5)
 				self.frameNbr = -1
+				self.countLostFrame = 0
 				
 				# self.rtpSocket.close()
 				# self.clientSocket.close()
-		
-		print(f"{self.state}")
 	
 	def openRtpPort(self):
 		"""Open RTP socket binded to a specified port."""
