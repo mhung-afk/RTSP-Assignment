@@ -181,72 +181,31 @@ class Client:
 		#-------------
 		
 		# Setup request
-		if requestCode == self.SETUP and self.state == self.INIT:
-			threading.Thread(target=self.recvRtspReply).start()
-                
-			# Update RTSP sequence number.
-			self.rtspSeq+=1
-			
-			# Write the RTSP request to be sent.
-			request = "%s %s %s" % (self.SETUP_STR,self.fileName,self.RTSP_VER)
-			request+="\nCSeq: %d" % self.rtspSeq
-			request+="\nTransport: %s; client_port= %d" % (self.TRANSPORT,self.rtpPort)
-			
-			# Keep track of the sent request.
-			self.requestSent = self.SETUP
-			
-		# Play request
-		elif requestCode == self.PLAY and self.state == self.READY:
-        
-			# Update RTSP sequence number.
-			self.rtspSeq+=1
-        
-			# Write the RTSP request to be sent.
-			request = "%s %s %s" % (self.PLAY_STR,self.fileName,self.RTSP_VER)
-			request+="\nCSeq: %d" % self.rtspSeq
-			request+="\nSession: %d"%self.sessionId
-                
-			
-			# Keep track of the sent request.
-			self.requestSent = self.PLAY
-            
-            
-        # Pause request
-		elif requestCode == self.PAUSE and self.state == self.PLAYING:
-        
-			# Update RTSP sequence number.
-			self.rtspSeq+=1
-			
-			request = "%s %s %s" % (self.PAUSE_STR,self.fileName,self.RTSP_VER)
-			request+="\nCSeq: %d" % self.rtspSeq
-			request+="\nSession: %d"%self.sessionId
-			
-			self.requestSent = self.PAUSE
-			
-		# Teardown request
-		elif requestCode == self.TEARDOWN and not self.state == self.INIT:
-        
-			# Update RTSP sequence number.
-			self.rtspSeq+=1
-			
-			# Write the RTSP request to be sent.
-			request = "%s %s %s" % (self.TEARDOWN_STR, self.fileName, self.RTSP_VER)
-			request+="\nCSeq: %d" % self.rtspSeq
-			request+="\nSession: %d" % self.sessionId
-			
-			self.requestSent = self.TEARDOWN
+		if requestCode == self.SETUP:
+			self.rtspThread = threading.Thread(target=self.recvRtspReply, daemon= True).start()
+			self.rtspSeq += 1
+			requestMessage = f"SETUP movie.Mjpeg RTSP/1.0\nCseq: {self.rtspSeq}\nTransport: RTP/UDP; client_port= {self.rtpPort}"
+		elif requestCode == self.PLAY:
+			self.rtspSeq += 1
+			requestMessage = f"PLAY movie.Mjpeg RTSP/1.0\nCseq: {self.rtspSeq}\nSession {self.sessionId}"
+		elif requestCode == self.PAUSE:
+			self.rtspSeq += 1
+			requestMessage = f"PAUSE movie.Mjpeg RTSP/1.0\nCseq: {self.rtspSeq}\nSession {self.sessionId}"
+		elif requestCode == self.TEARDOWN:
+			self.rtspSeq += 1
+			requestMessage = f"TEARDOWN movie.Mjpeg RTSP/1.0\nCseq: {self.rtspSeq}\nSession {self.sessionId}"
 
 		self.requestSent = requestCode
-		self.clientSocket.send(request.encode("utf-8"))
+		self.clientSocket.send(requestMessage.encode("utf-8"))
 	
 	def recvRtspReply(self):
 		"""Receive RTSP reply from the server."""
 		while True:
-			reply = self.clientSocket.recv(1024)															#? 1024
-			
-			if reply: 
-				self.parseRtspReply(reply)
-			
+			try:
+				reply, addr = self.clientSocket.recvfrom(2048)
+				self.parseRtspReply(reply.decode())
+			except:
+				pass
 			# Close the RTSP socket upon requesting Teardown
 	
 	def parseRtspReply(self, data):
@@ -268,8 +227,6 @@ class Client:
 				self.state = self.READY
 			elif self.requestSent == self.TEARDOWN:
 				self.eventThread.set()
-				self.clientSocket.shutdown(socket.SHUT_RDWR)
-				self.clientSocket.close()
 				self.state = self.INIT
 				self.label = Label(self.master, height=30, width=30)
 				self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5)
@@ -288,8 +245,6 @@ class Client:
 		self.rtpSocket.settimeout(0.5)
 		
 		try:
-			# Bind the socket to the address using the RTP port given by the client user.
-			self.state=self.READY
 			self.rtpSocket.bind(('', self.rtpPort))
 		except:
 			messagebox.showwarning('Unable to Bind', 'Unable to bind PORT=%d' %self.rtpPort)
