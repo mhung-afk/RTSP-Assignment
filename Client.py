@@ -137,6 +137,7 @@ class Client:
 					# count lost frames
 					self.countLostFrame += (seqNumPacket - self.frameNbr -1)
 					# update frame number
+
 					self.frameNbr = seqNumPacket
 			except:
 				# Upon receiving ACK for TEARDOWN request,
@@ -210,7 +211,7 @@ class Client:
 		code = lines[0].split(' ')[1]
 		cseq = lines[1].split(' ')[1]
 		sess = lines[2].split(' ')[1]
-
+		
 		if str(self.rtspSeq) == str(cseq) and code == "200":
 			if self.requestSent == self.SETUP:
 				self.openRtpPort()
@@ -224,7 +225,6 @@ class Client:
 				if self.firstrun:
 					self.firstrun = FALSE
 					self.startTime = int(time())
-
 				self.state = self.PLAYING
 			elif self.requestSent == self.PAUSE:
 				self.eventThread.set()
