@@ -15,8 +15,8 @@ if __name__ == "__main__":
 	root = Tk()
 	
 	# Create a new client
-	#app = Client(root, serverAddr, serverPort, rtpPort, fileName) # GUI
-	app = ClientExtend(root, serverAddr, serverPort, rtpPort, fileName) # GUI extend
+	app = Client(root, serverAddr, serverPort, rtpPort, fileName) # GUI
+	# app = ClientExtend(root, serverAddr, serverPort, rtpPort, fileName) # GUI extend
 
 	app.master.title("RTPClient")	
 	root.mainloop()
