@@ -51,7 +51,6 @@ class Client:
 		self.startTime = 0
 		self.sumOfVidDataRate = 0
 		self.firstRun = TRUE
-		# self.listVid = [] # list of video from server
 		
 		
 	# THIS GUI IS JUST FOR REFERENCE ONLY, STUDENTS HAVE TO CREATE THEIR OWN GUI 	
@@ -63,9 +62,8 @@ class Client:
 		"""Build GUI."""
 		# Create Setup button
 		# self.setup = Button(self.master, padx=3, pady=3,image=setupImg, command=self.setupMovie)
-		self.setup = Button(self.master, padx=3, pady=3,image=setupImg)
-		self.setup.image = setupImg
-		self.setup.grid(row=1, column=0, padx=100, pady=50)
+		# self.setup.image = setupImg
+		# self.setup.grid(row=1, column=0, padx=100, pady=50)
 		self.play = Button(self.master,  padx=3, pady=3,image=playImg, command=self.playMovie)
 		self.play.image = playImg
 		self.play.grid(row=1, column=1, padx=100, pady=50)
@@ -77,8 +75,16 @@ class Client:
 		self.tear.grid(row=1, column=3, padx=100, pady=50,)
 		self.label = Label(self.master, height=35, width=30)
 		self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5)
-		# self.cbVideo = ttk.Combobox(self.master, width = 27, textvariable = tkinter.StringVar())
-	
+		self.cbVideo = ttk.Combobox(self.master, width = 27, textvariable = tkinter.StringVar())  
+		self.cbVideo.grid(column = 1, row = 2, pady=10)
+		self.cbVideo.bind('<<ComboboxSelected>>', self.video_change)
+		self.cbVideo['values'] = []
+
+	def video_change(self, event):
+		if self.cbVideo.get() != self.fileName:
+			self.fileName = self.cbVideo.get()
+			self.exitClient()
+
 	def setupMovie(self):
 		"""Setup button handler."""
 		if self.state == self.INIT:
@@ -88,14 +94,13 @@ class Client:
 		"""Teardown button handler."""
 		if self.state == self.READY or self.state == self.PLAYING:
 			print("pressed tear down button")
-
+			
 			# statistic about this section
 			if self.frameNbr != 0:
 				print("Video data average rate: ", self.sumOfVidDataRate/(self.frameNbr - self.countLostFrame), " bytes/s")		
 				print("Received frame: ", self.frameNbr - self.countLostFrame, "; Lost frame: ", self.countLostFrame, "; Lost rate: ", (self.countLostFrame/self.frameNbr))
 			
 			self.sendRtspRequest(self.TEARDOWN)
-
 
 	def pauseMovie(self):
 		"""Pause button handler."""
@@ -105,10 +110,10 @@ class Client:
 	
 	def playMovie(self):
 		"""Play button handler."""
-		# extend 2
+		
 		self.setupMovie()
 		sleep(0.01)
-		
+	
 		if self.state == self.READY:
 			self.eventThread = threading.Event()
 			self.eventThread.clear()
@@ -180,6 +185,7 @@ class Client:
 		if requestCode == self.SETUP:
 			self.rtspThread = threading.Thread(target=self.recvRtspReply, daemon= True).start()
 			self.rtspSeq += 1
+			print("SETUP ", self.fileName)
 			requestMessage = f"SETUP {self.fileName} RTSP/1.0\nCseq: {self.rtspSeq}\nTransport: RTP/UDP; client_port= {self.rtpPort}"
 		elif requestCode == self.PLAY:
 			self.rtspSeq += 1
@@ -220,6 +226,8 @@ class Client:
 
 				# set time of first run
 				self.firstrun = TRUE
+				self.cbVideo['values'] = lines[3].split(' ')
+				self.cbVideo.set(self.fileName)
 			elif self.requestSent == self.PLAY:
 				# set start time for video play section
 				if self.firstrun:
