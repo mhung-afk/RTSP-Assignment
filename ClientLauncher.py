@@ -1,6 +1,7 @@
 import sys
 from tkinter import Tk
 from Client import Client
+from ClientExtend import ClientExtend
 
 if __name__ == "__main__":
 	try:
@@ -14,7 +15,9 @@ if __name__ == "__main__":
 	root = Tk()
 	
 	# Create a new client
-	app = Client(root, serverAddr, serverPort, rtpPort, fileName)
+	#app = Client(root, serverAddr, serverPort, rtpPort, fileName) # GUI
+	app = ClientExtend(root, serverAddr, serverPort, rtpPort, fileName) # GUI extend
+
 	app.master.title("RTPClient")	
 	root.mainloop()
 	

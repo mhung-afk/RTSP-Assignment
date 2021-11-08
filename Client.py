@@ -1,12 +1,10 @@
 from tkinter import *
-from tkinter import ttk
 import tkinter.messagebox
 tkinter.messagebox
 from tkinter import messagebox 
 tkinter.messagebox
 from PIL import Image, ImageTk
 import socket, threading, sys, traceback, os
-from time import time, sleep
 
 from RtpPacket import RtpPacket
 
@@ -48,10 +46,6 @@ class Client:
 		self.connectToServer()
 		self.frameNbr = 0
 		self.countLostFrame = 0
-		self.startTime = 0
-		self.sumOfVidDataRate = 0
-		self.firstRun = TRUE
-		# self.listVid = [] # list of video from server
 		
 		
 	# THIS GUI IS JUST FOR REFERENCE ONLY, STUDENTS HAVE TO CREATE THEIR OWN GUI 	
@@ -62,8 +56,7 @@ class Client:
 		tearImg = PhotoImage(file="teardown.png")
 		"""Build GUI."""
 		# Create Setup button
-		# self.setup = Button(self.master, padx=3, pady=3,image=setupImg, command=self.setupMovie)
-		self.setup = Button(self.master, padx=3, pady=3,image=setupImg)
+		self.setup = Button(self.master, padx=3, pady=3,image=setupImg, command=self.setupMovie)
 		self.setup.image = setupImg
 		self.setup.grid(row=1, column=0, padx=100, pady=50)
 		self.play = Button(self.master,  padx=3, pady=3,image=playImg, command=self.playMovie)
@@ -77,7 +70,36 @@ class Client:
 		self.tear.grid(row=1, column=3, padx=100, pady=50,)
 		self.label = Label(self.master, height=35, width=30)
 		self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5)
-		# self.cbVideo = ttk.Combobox(self.master, width = 27, textvariable = tkinter.StringVar())
+		# self.setup = Button(self.master, width=20, padx=3, pady=3, )
+		# self.setup["text"] = "Setup"
+		# self.setup["command"] = self.setupMovie
+		# self.setup["image"] = setupImg
+		# self.setup.grid(row=1, column=0, padx=2, pady=2)
+		
+		# Create Play button		
+		# self.start = Button(self.master, width=20, padx=3, pady=3)
+		# self.start["text"] = "Play"
+		# self.start["command"] = self.playMovie
+		# self.start["image"] = playImg
+		# self.start.grid(row=1, column=1, padx=2, pady=2)
+		
+		# Create Pause button			
+		# self.pause = Button(self.master, width=20, padx=3, pady=3)
+		# self.pause["text"] = "Pause"
+		# self.pause["command"] = self.pauseMovie
+		# self.pause["image"] = pauseImg
+		# self.pause.grid(row=1, column=2, padx=2, pady=2)
+		
+		# Create Teardown button
+		# self.teardown = Button(self.master, width=20, padx=3, pady=3)
+		# self.teardown["text"] = "Teardown"
+		# self.teardown["command"] =  self.exitClient
+		# self.teardown["image"] = tearImg
+		# self.teardown.grid(row=1, column=3, padx=2, pady=2)
+		
+		# Create a label to display the movie
+		# self.label = Label(self.master, height=19)
+		# self.label.grid(row=0, column=0, columnspan=4, sticky=W+E+N+S, padx=5, pady=5) 
 	
 	def setupMovie(self):
 		"""Setup button handler."""
@@ -88,12 +110,6 @@ class Client:
 		"""Teardown button handler."""
 		if self.state == self.READY or self.state == self.PLAYING:
 			print("pressed tear down button")
-
-			# statistic about this section
-			if self.frameNbr != 0:
-				print("Video data average rate: ", self.sumOfVidDataRate/(self.frameNbr - self.countLostFrame), " bytes/s")		
-				print("Received frame: ", self.frameNbr - self.countLostFrame, "; Lost frame: ", self.countLostFrame, "; Lost rate: ", (self.countLostFrame/self.frameNbr))
-			
 			self.sendRtspRequest(self.TEARDOWN)
 
 
@@ -105,10 +121,6 @@ class Client:
 	
 	def playMovie(self):
 		"""Play button handler."""
-		# extend 2
-		self.setupMovie()
-		sleep(0.01)
-		
 		if self.state == self.READY:
 			self.eventThread = threading.Event()
 			self.eventThread.clear()
@@ -128,16 +140,8 @@ class Client:
 				rtpPacket.decode(data)
 				seqNumPacket = rtpPacket.seqNum()
 				if self.frameNbr < seqNumPacket:
-					# sum of video data rate
-					self.sumOfVidDataRate += sys.getsizeof(rtpPacket.getPayload())/(rtpPacket.timestamp() - self.startTime)
-					
 					temp = self.writeFrame(rtpPacket.getPayload())
 					self.updateMovie(temp)
-
-					# count lost frames
-					self.countLostFrame += (seqNumPacket - self.frameNbr -1)
-					# update frame number
-
 					self.frameNbr = seqNumPacket
 			except:
 				# Upon receiving ACK for TEARDOWN request,
@@ -211,20 +215,12 @@ class Client:
 		code = lines[0].split(' ')[1]
 		cseq = lines[1].split(' ')[1]
 		sess = lines[2].split(' ')[1]
-		
 		if str(self.rtspSeq) == str(cseq) and code == "200":
 			if self.requestSent == self.SETUP:
 				self.openRtpPort()
 				self.state = self.READY
 				self.sessionId = sess
-
-				# set time of first run
-				self.firstrun = TRUE
 			elif self.requestSent == self.PLAY:
-				# set start time for video play section
-				if self.firstrun:
-					self.firstrun = FALSE
-					self.startTime = int(time())
 				self.state = self.PLAYING
 			elif self.requestSent == self.PAUSE:
 				self.eventThread.set()

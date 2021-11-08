@@ -108,7 +108,7 @@ class ServerWorker:
 			
 			# Close the RTP socket
 			self.clientInfo['rtpSocket'].close()
-			
+
 	def sendRtp(self):
 		"""Send RTP packets over UDP."""
 		while True:
@@ -152,7 +152,7 @@ class ServerWorker:
 		"""Send RTSP reply to the client."""
 		if code == self.OK_200:
 			#print("200 OK")
-			reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.clientInfo['session']) #+ '\nmovie.Mjpeg short-film.Mjpeg' 
+			reply = 'RTSP/1.0 200 OK\nCSeq: ' + seq + '\nSession: ' + str(self.clientInfo['session']) + '\nmovie1.Mjpeg movie2.Mjpeg movie3.Mjpeg' 
 			connSocket = self.clientInfo['rtspSocket'][0]
 			connSocket.send(reply.encode())
 		
